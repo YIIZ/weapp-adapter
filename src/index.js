@@ -1,9 +1,12 @@
-import * as _window from './window'
+import * as win from './window'
 import HTMLElement from './HTMLElement'
 
 const global = GameGlobal
 
 function inject () {
+  // imported object is not assignable
+  const _window = { ...win }
+
   _window.addEventListener = (type, listener) => {
     _window.document.addEventListener(type, listener)
   }
