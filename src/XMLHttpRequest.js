@@ -90,54 +90,72 @@ export default class XMLHttpRequest extends EventTarget {
     if (this.readyState !== XMLHttpRequest.OPENED) {
       throw new Error("Failed to execute 'send' on 'XMLHttpRequest': The object's state must be OPENED.")
     } else {
-      wx.request({
-        data,
-        url: _url.get(this),
-        method: _method.get(this),
-        header: _requestHeader.get(this),
-        responseType: this.responseType,
-        success: ({ data, statusCode, header }) => {
-          if (typeof data !== 'string' && !(data instanceof ArrayBuffer)) {
-            try {
-              data = JSON.stringify(data)
-            } catch (e) {
-              data = data
-            }
+      const onSuccess = ({ data, statusCode, header }) => {
+        statusCode = statusCode === undefined ? 200 : statusCode
+        if (typeof data !== 'string' && !(data instanceof ArrayBuffer)) {
+          try {
+            data = JSON.stringify(data)
+          } catch (e) {
+            data = data
           }
-
-          this.status = statusCode
-          _responseHeader.set(this, header)
-          _triggerEvent.call(this, 'loadstart')
-          _changeReadyState.call(this, XMLHttpRequest.HEADERS_RECEIVED)
-          _changeReadyState.call(this, XMLHttpRequest.LOADING)
-
-          this.response = data
-
-          if (data instanceof ArrayBuffer) {
-            this.responseText = ''
-            const bytes = new Uint8Array(data)
-            const len = bytes.byteLength
-
-            for (let i = 0; i < len; i++) {
-              this.responseText += String.fromCharCode(bytes[i])
-            }
-          } else {
-            this.responseText = data
-          }
-          _changeReadyState.call(this, XMLHttpRequest.DONE)
-          _triggerEvent.call(this, 'load')
-          _triggerEvent.call(this, 'loadend')
-        },
-        fail: ({ errMsg }) => {
-          // TODO 规范错误
-          if (errMsg.indexOf('abort') !== -1) {
-            _triggerEvent.call(this, 'abort')
-          } else {
-            _triggerEvent.call(this, 'error', errMsg)
-          }
-          _triggerEvent.call(this, 'loadend')
         }
-      })
+
+        this.status = statusCode
+        if (header) {
+          _responseHeader.set(this, header)
+        }
+        _triggerEvent.call(this, 'loadstart')
+        _changeReadyState.call(this, XMLHttpRequest.HEADERS_RECEIVED)
+        _changeReadyState.call(this, XMLHttpRequest.LOADING)
+
+        this.response = data
+
+        if (data instanceof ArrayBuffer) {
+          this.responseText = ''
+          const bytes = new Uint8Array(data)
+          const len = bytes.byteLength
+
+          for (let i = 0; i < len; i++) {
+            this.responseText += String.fromCharCode(bytes[i])
+          }
+        } else {
+          this.responseText = data
+        }
+        _changeReadyState.call(this, XMLHttpRequest.DONE)
+        _triggerEvent.call(this, 'load')
+        _triggerEvent.call(this, 'loadend')
+      }
+
+      const onFail = ({ errMsg }) => {
+        // TODO 规范错误
+        if (errMsg.indexOf('abort') !== -1) {
+          _triggerEvent.call(this, 'abort')
+        } else {
+          _triggerEvent.call(this, 'error', errMsg)
+        }
+        _triggerEvent.call(this, 'loadend')
+      }
+
+      const url = _url.get(this)
+      const isLocal = !(/^(http|https|ftp|wxfile):\/\/.*/i.test(url))
+      if(isLocal){
+        wx.getFileSystemManager().readFile({
+          filePath: url,
+          encoding: (this.responseType === 'arraybuffer' || this.responseType === 'blob') ? 'binary' : 'utf8',
+          success: onSuccess,
+          fail: onFail
+        })
+      } else {
+        wx.request({
+          data,
+          url,
+          method: _method.get(this),
+          header: _requestHeader.get(this),
+          responseType: this.responseType,
+          success: onSuccess,
+          fail: onFail
+        })
+      }
     }
   }
 
