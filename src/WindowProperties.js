@@ -11,4 +11,4 @@ export const ontouchstart = null
 export const ontouchmove = null
 export const ontouchend = null
 
-export performance from './performance'
+// export performance from './performance'
