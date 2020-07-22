@@ -17,6 +17,15 @@ export TouchEvent from './EventIniter/TouchEvent'
 // 暴露全局的 canvas
 const canvas = new Canvas()
 
+const {
+  setTimeout,
+  setInterval,
+  clearTimeout,
+  clearInterval,
+  requestAnimationFrame,
+  cancelAnimationFrame,
+} = GameGlobal
+
 export { canvas }
 export { setTimeout }
 export { setInterval }
